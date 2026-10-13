@@ -1,11 +1,8 @@
 --[[
-    Proje: Hunter MM2 - Sadece ESP & Stream Proof Sürümü
-    Özellikler: Rol ESP (Katil/Şerif/Masum), Aç/Kapat Butonu, Stream Proof (Kayıt/Yayın Koruması)
+    Proje: Hunter MM2 - Tam Stream Proof ESP
 ]]--
 
-local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
@@ -14,7 +11,26 @@ local Config = {
 }
 
 --------------------------------------------------------------------------------
--- 1. TEMİZLEME VE ESP FONKSİYONLARI
+-- STREAM PROOF KORUMALI PARENT OLUSTURMA
+--------------------------------------------------------------------------------
+local function getStreamProofParent()
+    -- Executor'ın gizli GUI deposunu kontrol et
+    if gethui then
+        return gethui()
+    elseif syn and syn.protect_gui then
+        local gui = Instance.new("ScreenGui")
+        syn.protect_gui(gui)
+        gui.Parent = game:GetService("CoreGui")
+        return gui
+    else
+        return game:GetService("CoreGui")
+    end
+end
+
+local TargetParent = getStreamProofParent()
+
+--------------------------------------------------------------------------------
+-- ESP TEMİZLEME VE OLUŞTURMA
 --------------------------------------------------------------------------------
 local function clearAllESP()
     for _, player in ipairs(Players:GetPlayers()) do
@@ -37,11 +53,11 @@ local function applyESP(player)
         local isMurderer = (char:FindFirstChild("Knife") or (backpack and backpack:FindFirstChild("Knife")))
         local isSheriff = (char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun")))
         
-        local color = Color3.fromRGB(0, 255, 120) -- Masum (Yeşil)
+        local color = Color3.fromRGB(0, 255, 120) -- Masum
         if isMurderer then
-            color = Color3.fromRGB(255, 30, 30) -- Katil (Kırmızı)
+            color = Color3.fromRGB(255, 30, 30) -- Katil
         elseif isSheriff then
-            color = Color3.fromRGB(30, 120, 255) -- Şerif (Mavi)
+            color = Color3.fromRGB(30, 120, 255) -- Şerif
         end
         
         local folder = Instance.new("Folder")
@@ -57,7 +73,7 @@ local function applyESP(player)
         hl.OutlineColor = Color3.fromRGB(255, 255, 255)
         hl.Parent = folder
         
-        -- İsim ve Rol Etiketi
+        -- Etiket
         local head = char:WaitForChild("Head", 5)
         if not head then return end
         
@@ -96,21 +112,20 @@ end
 Players.PlayerAdded:Connect(applyESP)
 
 --------------------------------------------------------------------------------
--- 2. BASİT VE ŞIK IMGUI TARZI ESP MENÜSÜ + STREAM PROOF
+-- STREAM PROOF MENÜ ARAYÜZÜ
 --------------------------------------------------------------------------------
-if CoreGui:FindFirstChild("Hunter_ESP_UI") then 
-    CoreGui.Hunter_ESP_UI:Destroy() 
+if TargetParent:FindFirstChild("Hunter_ESP_UI") then 
+    TargetParent.Hunter_ESP_UI:Destroy() 
 end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Hunter_ESP_UI"
-ScreenGui.Parent = CoreGui
-
--- STREAM PROOF (Ekran Kaydedicilerde / Yayınlarda Arayüzü Gizleme Koruma Ayarı)
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
-elseif gethui then
-    ScreenGui.Parent = gethui()
+local ScreenGui
+if TargetParent:IsA("ScreenGui") then
+    ScreenGui = TargetParent
+    ScreenGui.Name = "Hunter_ESP_UI"
+else
+    ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "Hunter_ESP_UI"
+    ScreenGui.Parent = TargetParent
 end
 
 local MainFrame = Instance.new("Frame")
@@ -125,11 +140,10 @@ MainFrame.Parent = ScreenGui
 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
 
--- Başlık
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 28)
 TitleBar.BackgroundColor3 = Color3.fromRGB(25, 18, 38)
-TitleBar.Text = "  Hunter MM2 // ESP & Stream Proof"
+TitleBar.Text = "  Hunter MM2 // Stream Proof Active"
 TitleBar.TextColor3 = Color3.fromRGB(200, 140, 255)
 TitleBar.Font = Enum.Font.Code
 TitleBar.TextSize = 11
@@ -138,14 +152,12 @@ TitleBar.Parent = MainFrame
 
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 6)
 
--- Insert Tuşu ile Menüyü Gizle/Göster
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Insert then
         MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
--- ESP Aç/Kapat Toggle Düğmesi
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 230, 0, 35)
 ToggleBtn.Position = UDim2.new(0.5, -115, 0, 45)
@@ -166,12 +178,11 @@ ToggleBtn.MouseButton1Click:Connect(function()
     ToggleBtn.TextColor3 = newState and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(160, 160, 160)
 end)
 
--- Stream Proof Bilgi Yazısı
 local InfoLbl = Instance.new("TextLabel")
 InfoLbl.Size = UDim2.new(1, 0, 0, 20)
 InfoLbl.Position = UDim2.new(0, 0, 0, 95)
 InfoLbl.BackgroundTransparency = 1
-InfoLbl.Text = "Stream Proof Aktif [Kayıtlarda Görünmez]"
+InfoLbl.Text = "OBS Game Capture Modunda Gizlenir"
 InfoLbl.TextColor3 = Color3.fromRGB(100, 200, 100)
 InfoLbl.Font = Enum.Font.Code
 InfoLbl.TextSize = 10
